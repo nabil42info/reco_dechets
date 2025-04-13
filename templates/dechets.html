@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IA Teachable Machine</title>
+    <!-- Charger TensorFlow.js AVANT Teachable Machine -->
+<!-- Charger TensorFlow.js en premier -->
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
+
+<!-- Charger correctement Teachable Machine -->
+<script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js"></script>
+
+
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; }
+        #preview { max-width: 300px; margin: 10px auto; display: block; }
+        #label-container div { font-size: 18px; margin-top: 5px; }
+        #status { font-size: 18px; font-weight: bold; margin-top: 10px; color: blue; }
+    </style>
+</head>
+<body>
+    <h1>Test de l'IA Teachable Machine</h1>
+    <p id="status">Chargement du modèle...</p>
+    <input type="file" id="imageUpload" accept="image/*" onchange="previewFile()">
+    <img id="preview" style="display: none;">
+    <div id="label-container"></div>
+
+    <script>
+        let model, maxPredictions;
+    
+        async function init() {
+            const statusElement = document.getElementById("status");
+            statusElement.textContent = "Chargement du modèle...";
+    
+            if (typeof tmImage === "undefined") {
+                console.error("tmImage n'est pas chargé !");
+                statusElement.textContent = "Erreur : Teachable Machine non chargé.";
+                return;
+            }
+    
+            const URL = "http://127.0.0.1:8000/"; // Mets ici l'URL correcte
+            const modelURL = URL + "model.json";
+            const metadataURL = URL + "metadata.json";
+    
+            try {
+                model = await tmImage.load(modelURL, metadataURL);
+                maxPredictions = model.getTotalClasses();
+                statusElement.textContent = "Modèle chargé avec succès.";
+            } catch (error) {
+                console.error("Erreur lors du chargement du modèle :", error);
+                statusElement.textContent = "Échec du chargement du modèle.";
+            }
+        }
+    
+        window.onload = init;
+    </script>
+    
+    
+    
+</body>
+</html>

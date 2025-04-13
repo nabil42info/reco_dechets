@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IA Teachable Machine - Image et Webcam</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js"></script>
+
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; }
+        #video, #preview { width: 300px; border: 2px solid black; display: none; margin: 10px auto; }
+        #canvas { display: none; } /* Utilisé pour capturer une image de la webcam */
+        #label-container div { font-size: 18px; margin-top: 5px; }
+        #status { font-size: 18px; font-weight: bold; margin-top: 10px; color: blue; }
+        
+    </style>
+</head>
+<body>
+    <h1>Test de l'IA Teachable Machine</h1>
+    <p id="status">Chargement du modèle...</p>
+
+    <button onclick="toggleMode('image')">Utiliser une Image</button>
+    <button onclick="toggleMode('webcam')">Utiliser la Webcam</button>
+
+    <input type="file" id="imageUpload" accept="image/*" onchange="previewFile()" style="display: none;">
+    <img id="preview">
+
+    <video id="video" autoplay playsinline></video>
+    <button id="captureBtn" onclick="predictWebcam()" style="display: none;">Prédire avec Webcam</button>
+
+    <canvas id="canvas"></canvas>
+    <div id="label-container"></div>
+
+    <script>
+        let model, maxPredictions;
+        let video = document.getElementById("video");
+
+        async function init() {
+            const statusElement = document.getElementById("status");
+            statusElement.textContent = "Chargement du modèle...";
+
+            const URL = "http://127.0.0.1:5000/"; 
+            const modelURL = URL + "model.json";
+            const metadataURL = URL + "metadata.json";
+
+            try {
+                model = await tmImage.load(modelURL, metadataURL);
+                maxPredictions = model.getTotalClasses();
+                statusElement.textContent = "Modèle chargé avec succès.";
+            } catch (error) {
+                console.error("Erreur lors du chargement du modèle :", error);
+                statusElement.textContent = "Échec du chargement du modèle.";
+            }
+        }
+
+        function toggleMode(mode) {
+            const imageUpload = document.getElementById("imageUpload");
+            const preview = document.getElementById("preview");
+            const video = document.getElementById("video");
+            const captureBtn = document.getElementById("captureBtn");
+
+            if (mode === "image") {
+                imageUpload.style.display = "block";
+                preview.style.display = "block";
+                video.style.display = "none";
+                captureBtn.style.display = "none";
+                stopWebcam();
+            } else if (mode === "webcam") {
+                imageUpload.style.display = "none";
+                preview.style.display = "none";
+                video.style.display = "block";
+                captureBtn.style.display = "block";
+                startWebcam();
+            }
+        }
+
+        function previewFile() {
+            const file = document.getElementById("imageUpload").files[0];
+            const preview = document.getElementById("preview");
+            const reader = new FileReader();
+
+            if (!file) {
+                alert("Aucune image sélectionnée.");
+                return;
+            }
+
+            document.getElementById("label-container").innerHTML = "";
+
+            reader.onloadend = function () {
+                preview.src = reader.result;
+                preview.style.display = "block";
+
+                // S'assurer que l'image est bien affichée avant de prédire
+                preview.onload = function () {
+                    setTimeout(() => predictImage(preview), 500); // Délai pour éviter le problème de décalage
+                };
+            };
+
+            reader.readAsDataURL(file);
+        }
+
+        async function predictImage(imageElement) {
+            if (!model) {
+                alert("Le modèle n'est pas encore chargé.");
+                return;
+            }
+
+            try {
+                const prediction = await model.predict(imageElement);
+                displayPrediction(prediction);
+            } catch (error) {
+                console.error("Erreur lors de la prédiction :", error);
+                alert("Erreur lors de l'exécution du modèle.");
+            }
+        }
+
+        function startWebcam() {
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(stream => {
+                    video.srcObject = stream;
+                })
+                .catch(error => {
+                    console.error("Erreur d'accès à la webcam :", error);
+                    alert("Impossible d'accéder à la webcam.");
+                });
+        }
+
+        function stopWebcam() {
+            let stream = video.srcObject;
+            if (stream) {
+                let tracks = stream.getTracks();
+                tracks.forEach(track => track.stop());
+                video.srcObject = null;
+            }
+        }
+
+        async function predictWebcam() {
+            if (!model) {
+                alert("Le modèle n'est pas encore chargé.");
+                return;
+            }
+
+            const canvas = document.getElementById("canvas");
+            const context = canvas.getContext("2d");
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const imageData = canvas;
+
+            // Ajouter un petit délai pour éviter le décalage
+            setTimeout(async () => {
+                try {
+                    const prediction = await model.predict(imageData);
+                    displayPrediction(prediction);
+                } catch (error) {
+                    console.error("Erreur lors de la prédiction :", error);
+                    alert("Erreur lors de l'exécution du modèle.");
+                }
+            }, 500);
+        }
+
+        function displayPrediction(prediction) {
+            const labelContainer = document.getElementById("label-container");
+            labelContainer.innerHTML = "";
+
+            prediction.forEach(pred => {
+                const div = document.createElement("div");
+                div.innerHTML = `${pred.className}: ${(pred.probability * 100).toFixed(2)}%`;
+                labelContainer.appendChild(div);
+            });
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
