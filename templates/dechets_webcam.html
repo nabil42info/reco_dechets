@@ -117,7 +117,7 @@
             }
         }
 
-        function startWebcam() {navigator.mediaDevices.getUserMedia({video: { facingMode: { exact:"environment" }}})
+        function startWebcam() {navigator.mediaDevices.getUserMedia({ video: true })
 
                 .then(stream => {
                     video.srcObject = stream;
