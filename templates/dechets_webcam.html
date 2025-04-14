@@ -117,16 +117,20 @@
             }
         }
 
-        function startWebcam() {navigator.mediaDevices.getUserMedia({ video: true })
+        async function startWebcam() {
+    const constraints = {
+        video: { facingMode: "environment" } // caméra arrière si dispo
+    };
 
-                .then(stream => {
-                    video.srcObject = stream;
-                })
-                .catch(error => {
-                    console.error("Erreur d'accès à la webcam :", error);
-                    alert("Impossible d'accéder à la webcam.");
-                });
-        }
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        video.srcObject = stream;
+    } catch (error) {
+        console.error("Erreur d'accès à la webcam :", error);
+        alert("Impossible d'accéder à la webcam.");
+    }
+}
+
 
         function stopWebcam() {
             let stream = video.srcObject;
