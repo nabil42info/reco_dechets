@@ -43,8 +43,8 @@
 
             const URL = window.location.origin + "/";
 
-            const modelURL = URL + "model.json";
-            const metadataURL = URL + "metadata.json";
+            const modelURL = URL + "/static/model.json";
+            const metadataURL = URL + "/static/metadata.json";
 
             try {
                 model = await tmImage.load(modelURL, metadataURL);
